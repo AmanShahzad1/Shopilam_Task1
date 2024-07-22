@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import "../css/vendor/bootstrap-stars.css";
-import "../css/vendor/bootstrap.min.css";
+import { Chart, registerables } from 'chart.js';
 import Carousel from './Carousel';
 import hero from "../img/landing-page/home-hero.png";
 import heroMobile from "../img/landing-page/home-hero-mobile.png";
@@ -12,34 +11,37 @@ import ThemesSection from './ThemesSection';
 import EnjoyingSection from './EnjoyingSection';
 import Footer from './Footer';
 
-const API = "https://jsonplaceholder.typicode.com/users";
+Chart.register(...registerables);
+
+const API = "https://dummyjson.com/carts";
 
 const HomeSection = () => {
-  const [users, setUsers] = useState([]);
+  const [carts, setCarts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5;
+  const cartsPerPage = 5;
 
-  const fetchUsers = async (url) => {
+  const fetchCarts = async (url) => {
     try {
       const res = await fetch(url);
       const data = await res.json();
-      if (data.length > 0) {
-        setUsers(data);
+      if (data.carts && data.carts.length > 0) {
+        setCarts(data.carts);
+        createBarChart(data.carts);
       }
-      console.log(data);
+      console.log(data.carts);
     } catch (e) {
       console.error(e);
     }
   };
 
   useEffect(() => {
-    fetchUsers(API);
+    fetchCarts(API);
   }, []);
 
   // Calculate pagination data
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
+  const indexOfLastCart = currentPage * cartsPerPage;
+  const indexOfFirstCart = indexOfLastCart - cartsPerPage;
+  const currentCarts = carts.slice(indexOfFirstCart, indexOfLastCart);
 
   // Handle page change
   const handlePageChange = (pageNumber) => {
@@ -48,9 +50,36 @@ const HomeSection = () => {
 
   // Render page numbers
   const pageNumbers = [];
-  for (let i = 1; i <= Math.ceil(users.length / usersPerPage); i++) {
+  for (let i = 1; i <= Math.ceil(carts.length / cartsPerPage); i++) {
     pageNumbers.push(i);
   }
+
+  const createBarChart = (data) => {
+    const ctx = document.getElementById('productChart').getContext('2d');
+    const labels = data.map(cart => cart.userId);
+    const totals = data.map(cart => cart.total);
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Total',
+          data: totals,
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  };
 
   return (
     <div className="section home">
@@ -106,23 +135,23 @@ const HomeSection = () => {
 
       <div className="section mb-0">
         <div className="container">
-          <h5 className="card-title">User Data</h5>
+          <h5 className="card-title">Carts Data</h5>
           <table className="table table-striped">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Address</th>
+                <th>User ID</th>
+                <th>Total Products</th>
+                <th>Total</th>
               </tr>
             </thead>
             <tbody>
-              {currentUsers.map(user => (
-                <tr key={user.id}>
-                  <th scope="row">{user.id}</th>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.address.city}</td>
+              {currentCarts.map(cart => (
+                <tr key={cart.id}>
+                  <th scope="row">{cart.id}</th>
+                  <td>{cart.userId}</td>
+                  <td>{cart.totalProducts}</td>
+                  <td>{cart.total}</td>
                 </tr>
               ))}
             </tbody>
@@ -137,6 +166,16 @@ const HomeSection = () => {
                 {number}
               </button>
             ))}
+          </div>
+
+          <h5 style={{ marginTop: "50px" }} className="mb-4 text-center">Bar Chart</h5>
+          <div className="row justify-content-center">
+            <div className="col-lg-8 mb-5">
+              <h6 className="mb-4 text-center">Shadow</h6>
+              <div className="chart-container chart">
+                <canvas id="productChart"></canvas>
+              </div>
+            </div>
           </div>
         </div>
       </div>
